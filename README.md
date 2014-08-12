@@ -2,7 +2,7 @@
 
 Hassle-free npm pack including all dependencies for offline installation with npm install
 
-Add `offline-npm` to your project to serve a npm compatible tgz file wich comntains all dependencies for offline installation with `npm install`
+Add `offline-npm` to your project to serve a npm compatible tgz file wich contains all dependencies for offline installation with `npm install`
 
 ## Installation
 
