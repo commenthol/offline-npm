@@ -24,6 +24,7 @@ Add `offline-npm` to your project to serve a npm compatible tgz file wich contai
         npm package
 
    Now the local cache is changed and all your projects dependencies will be downloaded into `offline/cache` and packed into the npm tgz file.
+   
    __Note__: Take care not to add `*.tgz` into your `.npmignore` file!
 
 4. Transfer the resulting `tgz` from the pack command onto a machine with no connectivity to the required registry. Execute this line from a terminal.
