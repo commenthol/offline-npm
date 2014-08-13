@@ -10,10 +10,6 @@ var	fs = require('fs'),
 	exec = require('child_process').exec,
 	npm = require('npm');
 
-var	pwd = function() {
-	return path.resolve(process.cwd());
-};
-
 /*
  * configuration settings
  */
@@ -21,20 +17,23 @@ var	config = {
 	port: 4873,
 };
 config.npm = {
-	preinstall: {
-		'cache'    : path.join(__dirname, 'cache'),
-		'cache-min': 999999,
-		'registry' : 'http://localhost:' + config.port + '/'
-	},
 	prepublish: {
 		'cache'    : path.join(__dirname, 'cache')
 	}
 };
 
+// ---------------------------------------------------------------------
 /*
- * make directories if not exists
+ * current working directory
+ */ 
+function pwd () {
+	return path.resolve(process.cwd());
+};
+
+/*
+ * make directories if they do not yet exists
  */
-function mkdir(dir) {
+function mkdir (dir) {
   var	tmp = '',
 		dirs = dir.split(path.sep);
 
@@ -50,7 +49,7 @@ function mkdir(dir) {
  * remove a directory
  * credits go to http://github.com/arturadib/shelljs
  */
-function rmdir(dir, force) {
+function rmdir (dir, force) {
   var files;
 	var result;
 
@@ -116,7 +115,7 @@ function rmdir(dir, force) {
  * copy files
  * credits go to http://github.com/arturadib/shelljs
  */
-function cp(srcFile, destFile) {
+function cp (srcFile, destFile) {
   if (!fs.existsSync(srcFile))
     log.error('cp: no such file or directory: ' + srcFile);
 
@@ -151,6 +150,7 @@ function cp(srcFile, destFile) {
   fs.chmodSync(destFile, fs.statSync(srcFile).mode);
 }
 
+// ---------------------------------------------------------------------
 /*
  *  a very very basic command line parser
  */
@@ -223,6 +223,7 @@ var log = {
 	}
 };
 
+// ---------------------------------------------------------------------
 /*
  * handle fs operations on package.json
  */
@@ -256,7 +257,7 @@ var packageJson = {
 			if (err) {
 				return log.error('Could not write package.json ' + err.message);
 			}
-			cb && cb();
+			if (cb) { cb(); }
 		});
 	},
 };
@@ -264,7 +265,7 @@ var packageJson = {
 /*
  * handle stuff related to npmrc
  */
-var npmrc = function(npm, config) {
+var npmrc = function (npm, config) {
 	var	self = {};
 	self._npmBackup = {};
 
@@ -291,8 +292,9 @@ var npmrc = function(npm, config) {
 	return self;
 };
 
+// ---------------------------------------------------------------------
 /*
- * serve the files from the npm cache
+ * serve the files from the npm cache as npm registry
  */
 var server = {
 	pack: function (cache, name, cb) {
@@ -300,7 +302,7 @@ var server = {
 		var dir = cache + '/' + name;
 		fs.readdir(dir, function(err, versions){
 			var vv = [];
-//~ console.log(err,versions)
+			//~ console.log(err,versions)
 			
 			if (err) {
 				return cb(err);
@@ -327,7 +329,7 @@ var server = {
 				latest: vv.sort(function(a,b){return a < b;})[0]
 			};
 			
-//~ console.log(JSON.stringify(p, null, '  '));
+			//~ console.log(JSON.stringify(p, null, '  '));
 			cb(null, p);
 		});
 	},
@@ -362,17 +364,14 @@ var server = {
 				else {
 					// check if the file exists
 					fs.exists(file, function (exists) {
-//~ console.log([ 'INFO', file ]);
+						//~ console.log('INFO', file);
 						if (exists) {
 
 							var stat = fs.statSync(file);
 
 							if (stat.isFile()) {
-								// open a file stream
 								stream = fs.createReadStream(file);
-								// set correct mime-type
 								res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
-								// stream the data
 								stream.on('data', function(chunk){
 									res.write(chunk);
 								});
@@ -382,7 +381,7 @@ var server = {
 							}
 						}
 						else {
-//~ console.log([ 'INFO', 'file not exists', file ]);
+							//~ console.log('INFO', 'file not exists', file);
 							res.writeHead(404);
 							res.end();
 						}
@@ -398,7 +397,6 @@ var server = {
 	start: function (cache) {
 		var self = this;
 		// create and start-up the server with the chained middlewares
-		//~ http.createServer(files({ path: '/', base: __dirname + '/test/offline/cache/' })).listen(config.port);
 		http.createServer(self.files({ path: '/', base: cache })).listen(config.port);
 		console.log('Server running on port:' + config.port);
 	}
@@ -410,7 +408,6 @@ var server = {
 var offline = {
 	_server: null,
 	_cmds:  ['prepublish', 'preinstall', 'postinstall'],
-	//~ _cmds:  ['prepublish', 'preinstall'],
 	_dir: 'offline',
 	_pidfile: path.join(__dirname, 'offline.pid'),
 	_script: './offline/offline-npm',
@@ -447,7 +444,7 @@ var offline = {
 						for (i in data.dependencies) {
 							packages.push(i);
 						}
-//~ console.error(packages)
+						//~ console.error(packages)
 						_npm.commands.install( packages, function(){
 							n.restore();
 						});
@@ -458,40 +455,21 @@ var offline = {
 	},
 	/**
 	 * to be called on install
-	 * Change the npm cache to ./deploy/cache
 	 * Change the npm registry to localhost:port
 	 * Start a fake registry server
 	 */
 	preinstall: function(){
 		var self = this;
-		npm.load(function (err, _npm) {
-			var n;
-			if (!err) {
-				n = npmrc(_npm, config.npm.preinstall);
-				n.set();
 
-				fs.writeFileSync(self._pidfile, process.pid, 'utf8');
+		// explicitely set registry
+		exec('npm config set registry ' + 'http://localhost:' + config.port +'/', function(){});
 
-				// TODO setting the registry from here does not work
-				exec('npm config set registry ' + 'http://localhost:' + config.port +'/',
-					function (err, stdout, stderr) {
-//~ console.log(err, stdout, stderr);
-//~ console.log(JSON.stringify(_npm.config.list, null, '  '));
-					});				
-
-				try {
-					server.start(__dirname + '/cache/');
-				}
-				catch(e){
-					log.error(e);
-				}
-			}
-		});
+		// start the npm registry using the cache
+		self.server();
 	},
 	/**
 	 * to be called on postinstall
 	 * delete the offline folder
-	 * TODO: kill the fake npm registry server
 	 */
 	postinstall: function(){
 		var pid;
@@ -508,7 +486,7 @@ var offline = {
 		}
 	},
 	/**
-	 * add scripts to package.json
+	 * add scripts to `package.json`
 	 */
 	add: function(){
 		var	self = this;
@@ -517,7 +495,7 @@ var offline = {
 			if (! data.scripts) { data.scripts = {}; }
 
 			self._cmds.forEach(function(s){
-				var	sep = ( s === 'preinstall' ? ' & ' : ' ; '),
+				var	sep = ( s === 'preinstall' ? ' & sleep 2 ; ' : ' ; '),
 					tmp = data.scripts[s];
 
 				if (tmp) {
@@ -541,7 +519,7 @@ var offline = {
 		});
 	},
 	/**
-	 * remove offline scripts
+	 * remove offline scripts from `package.json`
 	 */
 	remove: function() {
 		var	self = this;
@@ -570,12 +548,22 @@ var offline = {
 		});
 	},
 	/**
+	 * starts the local npm registry server
 	 */
 	server: function() {
-		server.start(__dirname + '/cache/');
+		var self = this;
+		try {
+			server.start(__dirname + '/cache/');
+			// write a pid file to kill the server on postinstall
+			fs.writeFileSync(self._pidfile, process.pid, 'utf8');
+		}
+		catch(e){
+			log.error(e);
+		}
 	}
 };
 
+// ---------------------------------------------------------------------
 /*
  * the main program
  */
@@ -585,14 +573,11 @@ function main () {
 	for (i in cli.opts) {
 		if (offline[i]) {
 			offline[i]();
-			//~ process.exit();
+			return; // only one option at a time allowed
 		}
 	}
 }
 
-/*
- * main
- */
 cli
 	.help('on the target machine set the npm registry manually with')
 	.help('npm config set registry http://localhost:'+config.port+'/')
@@ -602,7 +587,7 @@ cli
 	.option(''  , '--postinstall' , 'call on postinstall')
 	.option('-a', '--add'         , 'add offline-npm to project')
 	.option('-r', '--remove'      , 'remove from project')
-	.option('-s', '--server'      , 'start only npm server')
+	.option('-s', '--server'      , 'start only npm registry server')
 	.parse();
 
 main();
