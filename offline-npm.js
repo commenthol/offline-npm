@@ -28,7 +28,7 @@ config.npm = {
  */ 
 function pwd () {
 	return path.resolve(process.cwd());
-};
+}
 
 /*
  * make directories if they do not yet exists
@@ -460,6 +460,9 @@ var offline = {
 	 */
 	preinstall: function(){
 		var self = this;
+
+		// TODO - delete all npm-shrinkwraps -- assumes you are on a UNIX machine
+		exec('find .. -iname "npm-shrinkwrap.json" | xargs rm -f',   function (error, stdout, stderr) {});
 
 		// explicitely set registry
 		exec('npm config set registry ' + 'http://localhost:' + config.port +'/', function(){});
