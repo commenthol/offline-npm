@@ -8,7 +8,7 @@ var	fs = require('fs'),
 	path = require('path'),
 	http = require('http'),
 	exec = require('child_process').exec,
-	npm = require('npm');
+	npm = requireNpm();
 
 /*
  * configuration settings
@@ -22,6 +22,10 @@ config.npm = {
 	}
 };
 
+var DEBUG = false;
+
+// ---------------------------------------------------------------------
+// file operations
 // ---------------------------------------------------------------------
 /*
  * current working directory
@@ -151,6 +155,37 @@ function cp (srcFile, destFile) {
 }
 
 // ---------------------------------------------------------------------
+// find modules
+// ---------------------------------------------------------------------
+/*
+ * detect and load npm
+ */
+function requireNpm () {
+	// it is assumed that npm is always installed alongside with node 
+	var
+		npm,
+		npmBinPath,
+		npmPath,
+		binDir = path.dirname(process.execPath),
+		npmBin = path.join(binDir, 'npm');
+
+	try {
+		npm = require('npm'); // maybe the NODE_PATH var is already set correctly
+		return npm;
+	}
+	catch (e) {
+		if (fs.existsSync(npmBin) && fs.lstatSync(npmBin).isSymbolicLink()) {
+			npmBinPath = path.resolve(binDir, fs.readlinkSync(npmBin));
+			npmPath = npmBinPath.replace(/^(.*\/node_modules\/npm)(?:(?!\/node_modules\/npm).)*?$/, '$1');
+			npm = require(npmPath);  // if the assumption is wrong, then an assertion is thrown here
+			return npm;
+		}
+	}
+}
+
+// ---------------------------------------------------------------------
+// program 
+// ---------------------------------------------------------------------
 /*
  *  a very very basic command line parser
  */
@@ -188,7 +223,8 @@ var cli = {
 			// print out help
 			if (s === 'h' || s === 'help' ) {
 				console.log('\n' + this._help.join('\n') + '\n');
-				process.exit();
+				this.exit = true;
+				return;
 			}
 			if (r) {
 				if (r.long) {
@@ -196,8 +232,14 @@ var cli = {
 					r = this._option[r.long];
 				}
 				if (r.arg !== undefined) {
-					i += 1;
-					this.opts[s] = argv[i] || true;
+					var arg = argv[i+1];
+					if (! /^-/.test(arg) && typeof arg === r.arg) {
+						this.opts[s] = arg;
+						i += 1;
+					}
+					else {
+						this.opts[s] = true;
+					}
 				}
 				else {
 					this.opts[s] = true;
@@ -223,6 +265,8 @@ var log = {
 	}
 };
 
+// ---------------------------------------------------------------------
+// npm, package.json, semver
 // ---------------------------------------------------------------------
 /*
  * handle fs operations on package.json
@@ -292,76 +336,186 @@ var npmrc = function (npm, config) {
 	return self;
 };
 
+/*
+ * A semver parser to correctly sort for "latest" version
+ * Follows spec on <http://semver.org/>
+ */
+var semver = {
+	int: function (n) {
+		return parseInt(n, 10);
+	},
+	preRel: function (p) {
+		if (p) {
+			p = p.split('.');
+			return p.map(function(n){
+				if (/^\d+$/.test(n)) {
+					n = semver.int(n);
+				}
+				return n;
+			});
+		}
+		return;
+	},
+	version: function (v) {
+		var o;
+		
+		v.replace(/^(\d+)\.(\d+)\.(\d+)(?:\-([a-zA-Z0-9\.\-]*)?(?:\+(.*))?)?/, function(m, a0, a1, a2, pre){
+			o = { rel: [a0, a1, a2], pre: semver.preRel(pre) };
+			o.rel = o.rel.map(semver.int);
+		});
+
+		return o;
+	},
+	sortVersion: function (a, b) {
+		for (var i = 0; i < a.length; i+=1 ) {
+			if (a[i] !== b[i]) {
+				return (b[i] - a[i]);
+			}
+		}
+		return 0;
+	},
+	sortPreRel: function (a, b) {
+		var min, r;
+		if (!a) { return -1; }
+		if (!b) { return  1; }
+
+		min = ( a.length < b.length ? a.length : b.length ); 
+
+		for (var i = 0; i < min; i+=1 ) {
+			if (a[i] !== b[i]) {
+				r = b[i] - a[i];
+				if (isNaN(r)) {
+					if (b[i] < a[i]) { return -1; }
+					if (b[i] > a[i]) { return  1; }
+				}
+				else {
+					return r;
+				}
+			}
+		}
+		if (a.length > min) { return -1; }
+		if (b.length > min) { return  1; }
+		
+		return 0;
+	},
+	sort: function (a, b) {
+		var	r,
+			_a = semver.version(a),
+			_b = semver.version(b);
+
+		if (!_a) { return  1; }
+		if (!_b) { return -1; }
+
+		r = semver.sortVersion(_a.rel, _b.rel);
+		if (r !== 0) { return r; }
+
+		r = semver.sortPreRel(_a.pre, _b.pre);
+		return r;
+	}
+};
+
+// ---------------------------------------------------------------------
+// npm registry server
 // ---------------------------------------------------------------------
 /*
  * serve the files from the npm cache as npm registry
  */
-var server = {
+var server = {	
 	pack: function (cache, name, cb) {
 		var p = { name: name, versions: {} };
 		var dir = cache + '/' + name;
 		fs.readdir(dir, function(err, versions){
-			var vv = [];
-			//~ console.log(err,versions)
+			var	vv = [],
+				cnt = 0;
 			
 			if (err) {
 				return cb(err);
 			}
 
-			versions.forEach(function(version){
-				var pj = dir + '/' + version + '/package/package.json';
-				if (fs.existsSync(pj)) {
-					vv.push(version);
-					var pck = JSON.parse(fs.readFileSync(pj, 'utf8'));
-					pck.from = pck._from || ".";
-					pck.dist = {
-						shasum: pck._shasum,
-						tarball: 'http://localhost:' + config.port + '/' + name + '/' + version + '/package.tgz'
+			function done() {
+				if (cnt === versions.length) {
+					p['dist-tags'] = {
+						latest: vv.sort(semver.sort)[0]
 					};
+					
+					//~ if (DEBUG) console.log(JSON.stringify(p, null, '  '));
+					cb(null, p);
+				}
+				else {
+					cnt += 1;
+					load(versions[cnt])
+				}
+			}
+
+			function load(version) {
+				var pj = dir + '/' + version + '/package/package.json';
+				fs.readFile(pj, { encoding: 'utf8'}, function(err, data) {
+					var pck;
+					if (err) {
+						return done();
+					}
+					vv.push(version);
+					pck = JSON.parse(data);
+					pck.from = pck._from || ".";
+					pck.dist = {};
+					if (pck._shasum) {
+						pck.dist.shasum = pck._shasum;
+					}
+					pck.dist.tarball = 'http://localhost:' + config.port + '/' + name + '/-/' + name + '-' + version + '.tgz';
 					delete(pck.readme);
 					delete(pck._from);
 					delete(pck._shasum);
 					delete(pck._resolved);
 					p.versions[version] = pck;
-				}
-			});
-			p['dist-tags'] = {
-				latest: vv.sort(function(a,b){return a < b;})[0]
-			};
+					if (DEBUG) {
+						console.log (name, version, pck.dist.tarball);
+					}
+					done();
+				});
+			}
+
+			load (versions[cnt])
 			
-			//~ console.log(JSON.stringify(p, null, '  '));
-			cb(null, p);
 		});
 	},
+	error404: function (res) {
+		res.writeHead(404);
+		res.end();
+	},
 	files: function (options){
-		var self = this;
-		
+		var	self = this,
+			REGEX_TGZ = /^\/([^\/]+)\/-\/(?:(?!\d+\.\d+\.\d+).)*\-(\d+\.\d+\.\d+.*)\.tgz$/;
+			
 		options = options || {};
 		options.path = options.path || '/';
-		options.base = options.base || '/';
+		options.base = path.normalize(options.base || '/');
 
 		return function(req, res) {
-			var
-				file,
+			var	file,
 				stream;
 
 			// check routing - options.path needs to be part of req.url
 			if (req.url.indexOf(options.path) === 0) {
-				file = options.base + req.url.substr(options.path.length, req.url.length);
+				file = options.base + '/' + req.url.substr(options.path.length, req.url.length);
+
+				if (DEBUG) console.log (req.url, file);
 
 				if (/^\/[^\/]+$/.test(req.url)) {
 					var name = req.url.replace(/\//, '');
 					var p = self.pack(options.base, name, function(err, p){
 						if (err) {
-							res.writeHead(404);
-							res.end();
-							return;
+							return error404(res);
 						}
 						res.writeHead(200, {'Content-Type': 'application/json; charset=utf-8' });
 						res.end(JSON.stringify(p, null, '  '));
 					});
 				}
-				else {
+				else if (REGEX_TGZ.test(req.url)) {
+
+					req.url.replace(REGEX_TGZ, function(m, name, version) {
+						file = path.join(options.base, name, version, 'package.tgz');
+					});
+										
 					// check if the file exists
 					fs.exists(file, function (exists) {
 						//~ console.log('INFO', file);
@@ -382,15 +536,16 @@ var server = {
 						}
 						else {
 							//~ console.log('INFO', 'file not exists', file);
-							res.writeHead(404);
-							res.end();
+							return error404(res);
 						}
 					});
 				}
+				else {
+					return error404(res);
+				}
 			}
 			else {
-				res.writeHead(404);
-				res.end();
+				return error404(res);
 			}
 		};
 	},
@@ -398,7 +553,7 @@ var server = {
 		var self = this;
 		// create and start-up the server with the chained middlewares
 		http.createServer(self.files({ path: '/', base: cache })).listen(config.port);
-		console.log('Server running on port:' + config.port);
+		console.log('Server running on port:' + config.port + ' using cache in ' + cache);
 	}
 };
 
@@ -555,10 +710,17 @@ var offline = {
 	 */
 	server: function() {
 		var self = this;
+		var dir = typeof cli.opts.server === 'string' ? path.resolve(__dirname, cli.opts.server) : __dirname + '/cache/'
 		try {
-			server.start(__dirname + '/cache/');
-			// write a pid file to kill the server on postinstall
-			fs.writeFileSync(self._pidfile, process.pid, 'utf8');
+			if (fs.existsSync(dir) &&
+				fs.lstatSync(dir).isDirectory() ) {
+				server.start(dir);
+				// write a pid file to kill the server on postinstall
+				fs.writeFileSync(self._pidfile, process.pid, 'utf8');
+			}
+			else {
+				log.error(dir + ' is not a directory - server did not start')
+			}
 		}
 		catch(e){
 			log.error(e);
@@ -567,30 +729,39 @@ var offline = {
 };
 
 // ---------------------------------------------------------------------
-/*
- * the main program
- */
-function main () {
-	var	i;
+if (module === require.main) {
+	(function(){
+		cli
+			.help('on the target machine set the npm registry manually with')
+			.help('npm config set registry http://localhost:'+config.port+'/')
+			.help('')
+			.option(''  , '--prepublish'  , 'call on prepublish')
+			.option(''  , '--preinstall'  , 'call on preinstall')
+			.option(''  , '--postinstall' , 'call on postinstall')
+			.option('-a', '--add'         , 'add offline-npm to project')
+			.option('-r', '--remove'      , 'remove from project')
+			.option('-s', '--server'      , '[path] start npm registry server with registry in path', 'string')
+			.option('-d', '--debug'       , 'show debug info')
+			.parse();
 
-	for (i in cli.opts) {
-		if (offline[i]) {
-			offline[i]();
-			return; // only one option at a time allowed
+		for (var i in cli.opts) {
+			DEBUG = cli.opts.debug || false;
+			
+			if (offline[i]) {
+				offline[i]();
+				return; // only one option at a time allowed
+			}
 		}
-	}
+	})();
 }
 
-cli
-	.help('on the target machine set the npm registry manually with')
-	.help('npm config set registry http://localhost:'+config.port+'/')
-	.help('')
-	.option(''  , '--prepublish'  , 'call on prepublish')
-	.option(''  , '--preinstall'  , 'call on preinstall')
-	.option(''  , '--postinstall' , 'call on postinstall')
-	.option('-a', '--add'         , 'add offline-npm to project')
-	.option('-r', '--remove'      , 'remove from project')
-	.option('-s', '--server'      , 'start only npm registry server')
-	.parse();
-
-main();
+module.exports = {
+	cli: cli,
+	log: log,
+	semver: semver,
+	server: server,
+	offline: offline,
+	npmrc: npmrc,
+	requireNpm: requireNpm,
+	packageJson: packageJson,
+};
