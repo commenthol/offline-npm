@@ -12,7 +12,7 @@
     "mocha": "^1.21.4"
   },
   "dependencies": {
-    "request": "^2.40.0",
-    "semver": "^3.0.1"
+    "request": "latest",
+    "semver": "*"
   }
 }

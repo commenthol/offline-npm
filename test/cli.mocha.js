@@ -8,6 +8,7 @@ var
 	M = require('../offline-npm').cli;
 
 describe('#cli', function() {
+
 	it('show help', function() {
 		var cli = _.clone(M, true)
 		process.argv[2] = '--help';
@@ -15,7 +16,18 @@ describe('#cli', function() {
 			.help('this is a help text')
 			.parse();
 
-		assert.deepEqual(cli._help, [ '    this is a help text' ]);
+		assert.deepEqual(cli._store.help, [ '    this is a help text' ]);
+	});
+
+	it('show version', function() {
+		var cli = _.clone(M, true)
+		process.argv[2] = '-v';
+		cli
+			.version('0.0.1-a')
+			.help('this is a help text')
+			.parse();
+
+		assert.deepEqual(cli._store.version, '0.0.1-a');
 	});
 
 	it('parse one option', function() {
@@ -26,7 +38,7 @@ describe('#cli', function() {
 			.parse();
 			
 		assert.deepEqual(cli.opts, { test: true });
-		assert.deepEqual(cli._help, ['    -t , --test : this is a test' ]);
+		assert.deepEqual(cli._store.help, ["    -t , --test        : this is a test" ]);
 	});
 
 	it('parse one option in long format', function() {
@@ -37,7 +49,6 @@ describe('#cli', function() {
 			.parse();
 			
 		assert.deepEqual(cli.opts, { test: true });
-		assert.deepEqual(cli._help, ['    -t , --test : this is a test' ]);
 	});
 
 	it('parse one option with optional [path]', function() {
