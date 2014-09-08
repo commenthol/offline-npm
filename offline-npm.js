@@ -4,18 +4,18 @@
 
 /* jshint node:true */
 
-var	fs = require('fs'),
+var fs = require('fs'),
 	path = require('path'),
 	http = require('http'),
 	exec = require('child_process').exec,
 	npm = requireNpm();
 
-var	VERSION = '0.1.0';
+var VERSION = '0.1.2';
 
 /*
  * configuration settings
  */
-var	config = {
+var config = {
 	port: 4873
 };
 config.npm = {
@@ -38,7 +38,7 @@ function pwd () {
  * make directories if they do not yet exists
  */
 function mkdir (dir) {
-  var	tmp = '',
+	var	tmp = '',
 		dirs = dir.split(path.sep);
 
 	dirs.forEach(function(d){
@@ -54,7 +54,7 @@ function mkdir (dir) {
  * credits go to http://github.com/arturadib/shelljs
  */
 function rmdir (dir, force) {
-  var files;
+	var files;
 	var result;
 
 	function isWriteable(file) {
@@ -112,7 +112,7 @@ function rmdir (dir, force) {
 	}
 	catch (e) {}
 
-  return result;
+	return result;
 } // rmdir
 
 /*
@@ -120,38 +120,38 @@ function rmdir (dir, force) {
  * credits go to http://github.com/arturadib/shelljs
  */
 function cp (srcFile, destFile) {
-  if (!fs.existsSync(srcFile))
-    log.error('cp: no such file or directory: ' + srcFile);
+	if (!fs.existsSync(srcFile))
+		log.error('cp: no such file or directory: ' + srcFile);
 
-  var BUF_LENGTH = 64*1024,
-      buf = new Buffer(BUF_LENGTH),
-      bytesRead = BUF_LENGTH,
-      pos = 0,
-      fdr = null,
-      fdw = null;
+	var BUF_LENGTH = 64*1024,
+			buf = new Buffer(BUF_LENGTH),
+			bytesRead = BUF_LENGTH,
+			pos = 0,
+			fdr = null,
+			fdw = null;
 
-  try {
-    fdr = fs.openSync(srcFile, 'r');
-  } catch(e) {
-    log.error('cp: could not read src file ('+srcFile+')');
-  }
+	try {
+		fdr = fs.openSync(srcFile, 'r');
+	} catch(e) {
+		log.error('cp: could not read src file ('+srcFile+')');
+	}
 
-  try {
-    fdw = fs.openSync(destFile, 'w');
-  } catch(e) {
-    log.error('cp: could not write to dest file (code='+e.code+'):'+destFile);
-  }
+	try {
+		fdw = fs.openSync(destFile, 'w');
+	} catch(e) {
+		log.error('cp: could not write to dest file (code='+e.code+'):'+destFile);
+	}
 
-  while (bytesRead === BUF_LENGTH) {
-    bytesRead = fs.readSync(fdr, buf, 0, BUF_LENGTH, pos);
-    fs.writeSync(fdw, buf, 0, bytesRead);
-    pos += bytesRead;
-  }
+	while (bytesRead === BUF_LENGTH) {
+		bytesRead = fs.readSync(fdr, buf, 0, BUF_LENGTH, pos);
+		fs.writeSync(fdw, buf, 0, bytesRead);
+		pos += bytesRead;
+	}
 
-  fs.closeSync(fdr);
-  fs.closeSync(fdw);
+	fs.closeSync(fdr);
+	fs.closeSync(fdw);
 
-  fs.chmodSync(destFile, fs.statSync(srcFile).mode);
+	fs.chmodSync(destFile, fs.statSync(srcFile).mode);
 }
 
 // ---------------------------------------------------------------------
@@ -212,7 +212,7 @@ var cli = {
 	option: function (short, long, desc, arg) {
 		var s = this._strip(long),
 			spc = '              '.substr(0, (13 - long.length));
-              
+
 		this._store.option[s] = { desc: desc, arg: arg };
 		if (short !== '') {
 			this._store.option[this._strip(short)] = { long: s };
@@ -632,9 +632,22 @@ var server = {
 	},
 	start: function (cache) {
 		var self = this;
+
 		// create and start-up the server with the chained middlewares
-		http.createServer(self.files({ path: '/', base: cache })).listen(config.port);
-		console.log('Server running on port:' + config.port + ' using cache in ' + cache);
+		var server = http.createServer(self.files({ path: '/', base: cache }));
+
+		server.on('error', function(err) {
+			if (err.code === 'EADDRINUSE') {
+				log.error('Address in use, trying to use the running one ...', true);
+			}
+			else {
+				log.error('There is something bad: ' + err.code + ': ' + err.message);
+			}
+		});
+
+		server.listen(config.port, function() {
+			log.info('Server running on port:' + config.port + ' using cache in ' + cache);
+		});
 	}
 };
 
