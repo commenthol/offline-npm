@@ -10,7 +10,7 @@ var fs = require('fs'),
 	exec = require('child_process').exec,
 	npm = requireNpm();
 
-var VERSION = '0.1.2';
+var VERSION = '0.1.3';
 
 /*
  * configuration settings

@@ -1,6 +1,7 @@
-tmp
-test/try
+.jshintrc
 .npmignore
+tmp/
+try/
 offline-npm-*.tgz
 offline.pid
-.jshintrc
+npm-debug.log
