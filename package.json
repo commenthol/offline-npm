@@ -1,6 +1,6 @@
 {
   "name": "offline-npm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "npm pack for offline installation",
   "bin": "offline-npm.js",
   "scripts": {
@@ -9,6 +9,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/commenthol/offline-npm.git"
+  },
+  "homepage": "https://github.com/commenthol/offline-npm",
+  "bugs": {
+    "url": "http://github.com/commenthol/offline-npm/issues"
   },
   "keywords": [
     "npm",

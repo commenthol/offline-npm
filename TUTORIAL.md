@@ -31,7 +31,7 @@ cd offline-npm
 ## install offline-npm from clone
 npm install -g 
 ## change to folder `try`
-cd test/try
+cd ./try
 ## first run the project as is and install all dependencies
 npm install
 ## run index.js

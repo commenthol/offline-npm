@@ -382,10 +382,13 @@ var shrinkwrap = {
 		self.read(function(err, obj) {
 			if (!err && obj) {
 				obj.dependencies = self.parse(obj.dependencies);
+				self.write(obj, function(){
+					if (cb) cb();
+				});
 			}
-			self.write(obj, function(){
+			else {
 				if (cb) cb();
-			});
+			}
 		});
 	}
 };

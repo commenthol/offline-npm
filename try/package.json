@@ -4,7 +4,10 @@
   "description": "try offline-npm",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublish": "./offline/offline-npm --prepublish ; ",
+    "preinstall": "./offline/offline-npm --preinstall & sleep 2 ; ",
+    "postinstall": "./offline/offline-npm --postinstall ; "
   },
   "author": "",
   "license": "ISC",
