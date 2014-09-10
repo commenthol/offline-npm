@@ -86,7 +86,7 @@ cd try-offline
 ## make a node_modules dir such to install the package herein
 mkdir node_modules
 ## now install
-npm --registry http://localhost:4873/ install try-0.0.0.tgz --verbose
+npm --registry=http://localhost:4873/ install try-0.0.0.tgz --verbose
 #> npm WARN package.json try@0.0.0 No repository field.
 #> 
 #> > try@0.0.0 preinstall ./test/try/try-offline/node_modules/try
@@ -155,7 +155,7 @@ rm -rf node_modules
 ## make sure that the project is not in "offline" state
 offline-npm -r
 ## install from the npm cache using offline-npm
-npm --registry http://localhost:4873/ install
+npm --registry=http://localhost:4873/ install
 
 ## In the other terminal you should see the package requests using your offline registry server
 #> [2014-08-15T08:56:33.905Z] 200 /semver semver

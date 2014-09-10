@@ -11,7 +11,7 @@ request('http://www.duckduckgo.com', function (err, res, body) {
   }
   else {
 		if (res && res.statusCode) {
-			console.log(res.statusCode);
+			console.log('request:', res.statusCode);
 		}
 		if (err) {
 			console.log(err);
