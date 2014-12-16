@@ -1,10 +1,11 @@
 {
   "name": "offline-npm",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "npm pack for offline installation",
   "bin": "offline-npm.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha && test/test.sh",
+    "lint": "jshint *.js */*.js"
   },
   "repository": {
     "type": "git",
@@ -12,7 +13,7 @@
   },
   "homepage": "https://github.com/commenthol/offline-npm",
   "bugs": {
-    "url": "http://github.com/commenthol/offline-npm/issues"
+    "url": "https://github.com/commenthol/offline-npm/issues"
   },
   "keywords": [
     "npm",
@@ -22,10 +23,6 @@
   ],
   "author": "commenthol",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/commenthol/offline-npm/issues"
-  },
-  "homepage": "https://github.com/commenthol/offline-npm",
   "devDependencies": {
     "lodash": "^2.4.1",
     "mocha": "^1.21.4"

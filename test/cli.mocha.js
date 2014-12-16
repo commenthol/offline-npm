@@ -10,7 +10,7 @@ var
 describe('#cli', function() {
 
 	it('show help', function() {
-		var cli = _.clone(M, true)
+		var cli = _.clone(M, true);
 		process.argv[2] = '--help';
 		cli
 			.help('this is a help text')
@@ -20,7 +20,7 @@ describe('#cli', function() {
 	});
 
 	it('show version', function() {
-		var cli = _.clone(M, true)
+		var cli = _.clone(M, true);
 		process.argv[2] = '-v';
 		cli
 			.version('0.0.1-a')
@@ -31,7 +31,7 @@ describe('#cli', function() {
 	});
 
 	it('parse one option', function() {
-		var cli = _.clone(M, true)
+		var cli = _.clone(M, true);
 		process.argv[2] = '-t';
 		cli
 			.option('-t', '--test', 'this is a test')
@@ -42,7 +42,7 @@ describe('#cli', function() {
 	});
 
 	it('parse one option in long format', function() {
-		var cli = _.clone(M, true)
+		var cli = _.clone(M, true);
 		process.argv[2] = '--test';
 		cli
 			.option('-t', '--test', 'this is a test')
@@ -52,7 +52,7 @@ describe('#cli', function() {
 	});
 
 	it('parse one option with optional [path]', function() {
-		var cli = _.clone(M, true)
+		var cli = _.clone(M, true);
 		process.argv[2] = '-t';
 		process.argv[3] = 'this/path';
 		cli
@@ -62,7 +62,7 @@ describe('#cli', function() {
 	});
 
 	it('parse one option without optional [path]', function() {
-		var cli = _.clone(M, true)
+		var cli = _.clone(M, true);
 		process.argv[2] = '-t';
 		process.argv[3] = '--another-opt';
 		cli
