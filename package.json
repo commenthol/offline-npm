@@ -1,11 +1,12 @@
 {
   "name": "offline-npm",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "npm pack for offline installation",
   "bin": "offline-npm.js",
   "scripts": {
     "test": "mocha && test/test.sh",
-    "lint": "jshint *.js */*.js"
+    "lint": "jshint *.js */*.js",
+    "readme": "markedpp --githubid README.md > tmp.md && mv tmp.md README.md"
   },
   "repository": {
     "type": "git",

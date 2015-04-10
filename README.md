@@ -1,11 +1,23 @@
 # offline-npm
 
-Hassle-free npm pack including all dependencies for offline installation with npm install
+Hassle-free `npm pack` including all dependencies for offline installation with `npm install`
 
 Add `offline-npm` to your project to serve a npm compatible tgz file wich contains all dependencies for offline installation with `npm install`.
 
-Additionally you can use offline-npm to install packages from your local npm cache directory (Could be useful e.g. on travelling).
+Additionally you can use `offline-npm -n` to install packages from your local npm cache directory (Could be useful e.g. on travelling).
 
+## Table of Contents
+
+<!-- !toc (minlevel=2 omit="Table of Contents") -->
+
+* [Installation](#installation)
+* [Usage](#usage)
+* [Tutorial](#tutorial)
+* [Install packages from npm cache offline](#install-packages-from-npm-cache-offline)
+* [Troubleshooting](#troubleshooting)
+* [License](#license)
+
+<!-- toc! -->
 
 ## Installation
 
@@ -28,14 +40,14 @@ Additionally you can use offline-npm to install packages from your local npm cac
         npm pack
 
    Now the local cache is changed and all your projects dependencies will be downloaded into `offline/cache` and packed into the npm tgz file.
-   
-   __Note__: Take care not to add a global `*.tgz` into your `.npmignore` file!
+
+   > __Note__: Take care not to add a global `*.tgz` into your `.npmignore` file!
 
 4. Transfer the resulting `<name>-<version>.tgz` from the pack command onto a machine with no connectivity to the required registry. Execute this line from a terminal.
 
    Now install the package with:
 
-        npm --registry http://localhost:4873/ install <name>-<version>.tgz [-g]
+        npm --registry http://localhost:4873/ install [-g] <name>-<version>.tgz
 
    Alternatively set the registry in the npm config with:
 
@@ -43,7 +55,7 @@ Additionally you can use offline-npm to install packages from your local npm cac
 
    This allows to install the package with
 
-        npm install <name>-<version>.tgz [-g]
+        npm install [-g] <name>-<version>.tgz
 
 
 ## Tutorial
@@ -51,12 +63,19 @@ Additionally you can use offline-npm to install packages from your local npm cac
 Find [here](TUTORIAL.md) a step-by-step [tutorial](TUTORIAL.md) using a provided sample project.
 
 
-## Goodies
+## Install packages from npm cache offline
 
 If you want to use your local npm cache to install packages from use the option
 
-    offline-npm -n
+    offline-npm -n [-d]
 
+> `-d` shows you some server logs on the console.
+
+Then install packages from the local npm cache with:
+
+    npm --registry http://localhost:4873 [-f] install <packagename>
+
+> Use the `-f` switch to force installing packages. This might be required if `npm` stops stating "shasum" errors.
 
 ## Troubleshooting
 
@@ -76,7 +95,7 @@ If you want to use your local npm cache to install packages from use the option
 
    If you see that some `.lock` in your files block you from progress, consider deleting them.
 
-3. This works in the \*NIX world. I never tried this on Windows!
+4. This works in the \*NIX world. I never tried this on Windows!
 
 
 ## License
@@ -85,4 +104,4 @@ Copyright (c) 2014 commenthol
 
 Software is released under [MIT][MIT].
 
-[MIT]: LICENSE
+[MIT]: ./LICENSE
