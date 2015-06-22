@@ -10,7 +10,7 @@ var fs = require('fs'),
 	exec = require('child_process').exec,
 	npm = requireNpm();
 
-var VERSION = '0.1.3';
+var VERSION = '0.1.6';
 
 /*
  * configuration settings
@@ -36,17 +36,38 @@ function pwd () {
 
 /*
  * make directories if they do not yet exists
+ * credits to https://github.com/substack/node-mkdirp
  */
-function mkdir (dir) {
-	var	tmp = '',
-		dirs = dir.split(path.sep);
+function mkdir(dir, made) {
+	var mode = parseInt('0777', 8) & (~process.umask());
 
-	dirs.forEach(function(d){
-		tmp += path.sep + d;
-		if (! fs.existsSync(tmp)) {
-			fs.mkdirSync(tmp, parseInt('0777', 8));
+	dir = path.resolve(dir);
+
+	try {
+		fs.mkdirSync(dir, mode);
+		made = made || dir;
+	}
+	catch(e) {
+		switch(e.code) {
+			case 'ENOENT': {
+				made = mkdir(path.dirname(dir), made);
+				mkdir(dir, made);
+				break;
+			}
+			default: {
+				var stat;
+				try {
+					stat = fs.statSync(dir);
+				}
+				catch (e1) {
+					throw e;
+				}
+				if (!stat.isDirectory()) throw e;
+				break;
+			}
 		}
-	});
+	}
+	return made;
 }
 
 /*
@@ -74,7 +95,7 @@ function rmdir (dir, force) {
 
 		// Loop through and delete everything in the sub-tree after checking it
 		for(var i = 0; i < files.length; i++) {
-			var file = dir + "/" + files[i],
+			var file = path.join(dir, files[i]),
 					currFile = fs.lstatSync(file);
 
 			if(currFile.isDirectory()) { // Recursive function back to the beginning
