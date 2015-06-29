@@ -9,9 +9,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "mocha": "^1.21.4"
+    "mocha": "latest"
   },
   "dependencies": {
+    "async": "file:async-1.3.0.tgz",
+    "mergee": "git://github.com/commenthol/mergee.git#master",
     "request": "latest",
     "semver": "*"
   }

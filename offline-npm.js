@@ -10,7 +10,7 @@ var fs = require('fs'),
 	exec = require('child_process').exec,
 	npm = requireNpm();
 
-var VERSION = '0.1.6';
+var VERSION = '0.2.0-0';
 
 /*
  * configuration settings
@@ -20,7 +20,7 @@ var config = {
 };
 config.npm = {
 	prepublish: {
-		'cache'    : path.join(__dirname, 'cache')
+		'cache' : path.join(__dirname, 'cache')
 	}
 };
 
@@ -145,11 +145,11 @@ function cp (srcFile, destFile) {
 		log.error('cp: no such file or directory: ' + srcFile);
 
 	var BUF_LENGTH = 64*1024,
-			buf = new Buffer(BUF_LENGTH),
-			bytesRead = BUF_LENGTH,
-			pos = 0,
-			fdr = null,
-			fdw = null;
+		buf = new Buffer(BUF_LENGTH),
+		bytesRead = BUF_LENGTH,
+		pos = 0,
+		fdr = null,
+		fdw = null;
 
 	try {
 		fdr = fs.openSync(srcFile, 'r');
@@ -374,21 +374,66 @@ var packageJson = {
 	},
 };
 
+/**
+ * handle the shrinkwrap file
+ */
 var shrinkwrap = {
 	_name: 'npm-shrinkwrap.json',
+	/**
+	 * read the file
+	 */
 	read: function(cb) {
 		fsJson(this._name).read(cb);
 	},
+	/**
+	 * write the file
+	 */
 	write: function (data, cb) {
 		fsJson(this._name).write(data, cb);
 	},
+
+	/**
+	 * backup npm-shrinkwrap.json to offline dir
+	 */
+	backup: function(prepublish) {
+		var fileOrg = path.join(pwd(), this._name),
+			fileBak = path.join(pwd(), offline._dir, this._name);
+
+		if (!fs.existsSync(fileOrg)) {
+			if (prepublish && fs.existsSync(fileBak)) {
+				fs.unlinkSync(fileBak);
+			}
+			return false;
+		}
+		else if (!fs.existsSync(fileBak)) {
+			cp(fileOrg, fileBak);
+			return true;
+		}
+	},
+	/**
+	 * if exists npm-shrinkwrap.json restore to main dir
+	 */
+	restore: function() {
+		var fileGen = path.join(pwd(), this._name),
+			fileBak = path.join(pwd(), offline._dir, this._name);
+
+		if (fs.existsSync(fileBak)) {
+			cp(fileBak, fileGen);
+			return true;
+		}
+		else if (fs.existsSync(fileGen)) {
+			fs.unlinkSync(fileGen);
+		}
+	},
+	/**
+	 * parse npm-shrinkwrap and change resolved property
+	 */
 	parse: function (obj) {
 		var name;
 		if (obj) {
 			for(name in obj) {
 				if (obj[name].resolved) {
-					//~ obj[name].resolved = server.packageUrl(name, obj[name].version);
-					delete(obj[name].resolved);
+					obj[name].resolved = server.packageUrl(name, obj[name].version);
 				}
 				if (obj[name].dependencies) {
 					obj[name].dependencies = shrinkwrap.parse(obj[name].dependencies);
@@ -397,6 +442,9 @@ var shrinkwrap = {
 		}
 		return obj;
 	},
+	/**
+	 * change the shrinkwrap file
+	 */
 	change: function (cb) {
 		var	self = this;
 
@@ -705,21 +753,35 @@ var offline = {
 				mkdir(path.join(__dirname, 'cache'));
 				rmdir(path.join(__dirname, '..', 'node_modules'));
 
-				shrinkwrap.change(function(err){
-					packageJson.read(function(err, data){
-						var	i,
-							count,
-							packages = [];
+				shrinkwrap.restore();
 
-						if (data.dependencies) {
-							for (i in data.dependencies) {
-								packages.push(i);
-							}
-							_npm.commands.install( packages, function(){
-								n.restore();
-							});
+				packageJson.read(function(err, data){
+					var	i,
+						count,
+						packages = [];
+
+					if (data.dependencies) {
+						for (i in data.dependencies) {
+							packages.push(i);
 						}
-					});
+						_npm.commands.install( packages, function(){
+							n.restore();
+
+							shrinkwrap.backup(true);
+							_npm.commands.shrinkwrap([], function(err, data){
+								log.info(data)
+
+								if (err) {
+									log.error('shrinkwrap error: ' + err.message);
+									return;
+								}
+								shrinkwrap.change(function(err){
+									// TODO
+									log.info('shrinkwrapping done')
+								});
+							});
+						});
+					}
 				});
 			}
 		});
@@ -731,12 +793,6 @@ var offline = {
 	 */
 	preinstall: function(){
 		var self = this;
-
-		//~ // TODO - delete all npm-shrinkwraps -- assumes you are on a UNIX machine
-		//~ exec('find .. -iname "npm-shrinkwrap.json" | xargs rm -f',   function (error, stdout, stderr) {});
-
-		//~ // explicitely set registry
-		//~ exec('npm config set registry ' + 'http://localhost:' + config.port +'/', function(){});
 
 		// start the npm registry using the cache
 		self.server();
@@ -788,6 +844,7 @@ var offline = {
 					else {
 						mkdir(path.join(__dirname, 'cache'));
 					}
+					shrinkwrap.backup();
 					log.info('offline-npm was added to project: ' + data.name);
 				}
 				else {
@@ -805,6 +862,18 @@ var offline = {
 
 		packageJson.read(function(err, data){
 			var	tmp;
+
+			if (err) {
+				log.error('no package.json file found');
+				return;
+			}
+
+			shrinkwrap.restore();
+			// delete the offline directory
+			tmp = path.resolve(pwd(), self._dir);
+			if (fs.existsSync(tmp)){
+				rmdir(tmp);
+			}
 
 			if (! data.scripts) { data.scripts = {}; }
 
