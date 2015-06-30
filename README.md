@@ -6,6 +6,8 @@ Add `offline-npm` to your project to serve a npm compatible tgz file wich contai
 
 Additionally you can use `offline-npm -n` to install packages from your local npm cache directory (Could be useful e.g. on travelling).
 
+Even installs using `git:` or `file:` (requires node>=0.11) are considered.
+
 ## Table of Contents
 
 <!-- !toc (minlevel=2 omit="Table of Contents") -->
@@ -43,17 +45,11 @@ Additionally you can use `offline-npm -n` to install packages from your local np
 
    > __Note__: Take care not to add a global `*.tgz` into your `.npmignore` file!
 
+   > __Note__: An existing `npm-shrinkwrap.json` file will get overwritten in this step to provide install without the `--registry` switch. A backup is stored in the `./offline` folder.
+
 4. Transfer the resulting `<name>-<version>.tgz` from the pack command onto a machine with no connectivity to the required registry. Execute this line from a terminal.
 
    Now install the package with:
-
-        npm --registry http://localhost:4873/ install [-g] <name>-<version>.tgz
-
-   Alternatively set the registry in the npm config with:
-
-        npm config set registry http://localhost:4873/
-
-   This allows to install the package with
 
         npm install [-g] <name>-<version>.tgz
 
@@ -93,9 +89,7 @@ Then install packages from the local npm cache with:
 
         `npm install <name-version>.tgz --verbose`
 
-   If you see that some `.lock` in your files block you from progress, consider deleting them.
-
-4. This works in the \*NIX world. I never tried this on Windows!
+   If you see that some `.lock` in your files block you from progress, consider deleting them with `npm cache clean <pkg>[@<version>]`
 
 
 ## License

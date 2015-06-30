@@ -22,21 +22,28 @@ There is a small project in folder `try` using two dependencies `semver` and `re
 
 ## Prepare & Pack
 
-Open a terminal and lets start... 
+Open a terminal and lets start...
 
 ```bash
 ## clone this project from github
 git clone https://github.com/commenthol/offline-npm.git
 cd offline-npm
 ## install offline-npm from clone
-npm install -g 
+npm install -g
 ## change to folder `try`
 cd ./try
+```
+
+The `try` project contains a package which installs from npm registry, file and git.
+
+```bash
 ## first run the project as is and install all dependencies
 npm install
 ## run index.js
 node index.js
 #> semver: true
+#> five: 5
+#> mergee: { a: 1 }
 #> request: <title>DuckDuckGo</title>
 ## shrinkwrap the used versions
 npm shrink
@@ -49,12 +56,16 @@ offline-npm -a
 ## pack all
 npm pack
 #> > try@0.0.0 prepublish .
-#> > ./offline/offline-npm --prepublish ; 
-#> 
+#> > ./offline/offline-npm --prepublish ;
+#>
 #> npm WARN package.json try@0.0.0 No repository field.
 #> npm WARN package.json try@0.0.0 No README data
+#> five@0.1.0 node_modules/five
+#>
+#> mergee@0.2.2 node_modules/mergee
+#>
 #> semver@3.0.1 node_modules/semver
-#> 
+#>
 #> request@2.40.0 node_modules/request
 #> ├── json-stringify-safe@5.0.0
 #> ├── aws-sign2@0.5.0
@@ -84,26 +95,29 @@ cp try-0.0.0.tgz try-offline
 ## change folder
 cd try-offline
 ## make a node_modules dir such to install the package herein
-mkdir node_modules
 ## now install
-npm --registry=http://localhost:4873/ install try-0.0.0.tgz --verbose
+npm install --save try-0.0.0.tgz --verbose
 #> npm WARN package.json try@0.0.0 No repository field.
-#> 
+#>
 #> > try@0.0.0 preinstall ./test/try/try-offline/node_modules/try
-#> > ./offline/offline-npm --preinstall & sleep 2 ; 
-#> 
-#> Server running on port:4873 using cache in ./test/try/try-offline/node_modules/try/offline/cache/
-#> 
+#> > ./offline/offline-npm --preinstall & sleep 2 ;
+#>
+#> Server running on port:4873 using cache in ./try/try-offline/node_modules/try/offline/cache/
+#>
 #> > try@0.0.0 postinstall ./test/try/try-offline/node_modules/try
-#> > ./offline/offline-npm --postinstall ; 
-#> 
+#> > ./offline/offline-npm --postinstall ;
+#>
 #> try@0.0.0 node_modules/try
+#> ├── five@0.1.0
+#> ├── mergee@0.2.2
 #> ├── semver@3.0.1
 #> └── request@2.40.0 (json-stringify-safe@5.0.0, forever-agent@0.5.2, aws-sign2@0.5.0, oauth-sign@0.3.0, stringstream@0.0.4, tunnel-agent@0.4.0, qs@1.0.2, node-uuid@1.4.1, mime-types@1.0.2, form-data@0.1.4, tough-cookie@0.12.1, http-signature@0.10.0, hawk@1.1.1)
 
-## Finally execute the `index.js` within `try`
-node node_modules/try/index.js 
+## Finally execute the `index.js`
+node index.js
 #> semver: true
+#> five: 5
+#> mergee: { a: 1 }
 #> { [Error: connect ECONNREFUSED]
 #>   code: 'ECONNREFUSED',
 #>   errno: 'ECONNREFUSED',
@@ -121,7 +135,7 @@ cd ..
 find offline
 #> offline/cache/...
 ## the `package.json` still has the offline scripts in
-grep offline/ package.json 
+grep offline/ package.json
 #>    "prepublish": "./offline/offline-npm --prepublish ; ",
 #>    "preinstall": "./offline/offline-npm --preinstall & sleep 2 ; ",
 #>    "postinstall": "./offline/offline-npm --postinstall ; "

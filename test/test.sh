@@ -15,22 +15,33 @@ _cleanup () {
 	test -d node_modules && rm -rf node_modules
 }
 
+_log () {
+	printf "\n  \033[36m%s\033[0m : \033[90m%s\033[0m\n\n" $1 $2
+}
+
 _assert () {
-	echo Assert: $1
+	printf "\n  \033[31mAssert: $@\033[0m\n\n"
 	_cleanup
 	exit 1
 }
 
+_ok () {
+	printf "\n  \033[32mOk: $1\033[0m\n\n"
+}
+
 _describe () {
+
+	_log 'Test' $1
 
 	# test packaging
 	_it_pack () {
+
 		# cleanup & reset
 		_cleanup
 		cd $pwd/try
 		export HTTP_PROXY=""
 		../offline-npm.js -r
-		
+
 		# install packages
 		npm $npmOpts install
 		if [ ! -d node_modules ]; then
@@ -55,6 +66,8 @@ _describe () {
 			_assert "npm pack failed"
 		fi
 		../offline-npm.js -r
+
+		_ok 'Pack test passed: ' $1
 	}
 
 	# test offline install
@@ -67,7 +80,7 @@ _describe () {
 		export HTTP_PROXY="http://127.0.0.1:3000"
 		test -d node_modules && rm -r node_modules
 		test ! -d node_modules && mkdir node_modules
-		npm install --registry=http://127.0.0.1:4873/ $npmOpts ../try-0.0.0.tgz
+		npm install $npmOpts ../try-0.0.0.tgz
 		if [ ! -d node_modules/try ]; then
 			_assert "offline npm install failed"
 		fi
@@ -77,12 +90,14 @@ _describe () {
 			_assert "offline index.js failed"
 		fi
 		kill $proxyPid
+
+		_ok 'Offline test passed'
 	}
 
 	_it_pack $1
 	_it_offline
 }
 
-_describe
-_describe shrink
+_describe "normal"
+_describe "shrink"
 _cleanup

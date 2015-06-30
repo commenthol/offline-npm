@@ -10,7 +10,7 @@ var fs = require('fs'),
 	exec = require('child_process').exec,
 	npm = requireNpm();
 
-var VERSION = '0.2.0-0';
+var VERSION = '0.2.0';
 
 /*
  * configuration settings
@@ -699,7 +699,7 @@ var server = {
 			}
 		};
 	},
-	start: function (cache) {
+	start: function (cache, cb) {
 		var self = this;
 
 		// create and start-up the server with the chained middlewares
@@ -716,6 +716,7 @@ var server = {
 
 		server.listen(config.port, function() {
 			log.info('Server running on port:' + config.port + ' using cache in ' + cache);
+			cb && cb();
 		});
 	}
 };
@@ -769,15 +770,11 @@ var offline = {
 
 							shrinkwrap.backup(true);
 							_npm.commands.shrinkwrap([], function(err, data){
-								log.info(data)
-
 								if (err) {
 									log.error('shrinkwrap error: ' + err.message);
 									return;
 								}
 								shrinkwrap.change(function(err){
-									// TODO
-									log.info('shrinkwrapping done')
 								});
 							});
 						});
@@ -927,7 +924,9 @@ var offline = {
 	npmcache: function() {
 		npm.load(function (err, npm) {
 			var cache = npm.config.get('cache');
-			server.start(cache);
+			server.start(cache, function() {
+				log.info('export NPM_CONFIG_REGISTRY="http://localhost:'+ config.port +'"');
+			});
 		});
 	}
 };
