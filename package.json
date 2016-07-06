@@ -25,7 +25,13 @@
   "author": "commenthol",
   "license": "MIT",
   "devDependencies": {
-    "lodash": "^2.4.1",
-    "mocha": "*"
+    "lodash": "latest",
+    "mocha": "latest"
+  },
+  "eslintConfig": {
+    "extends": "standard",
+    "rules": {
+      "one-var": 0
+    }
   }
 }

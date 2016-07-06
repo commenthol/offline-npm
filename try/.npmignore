@@ -1,3 +1,4 @@
-.npmignore
-offline-try/
-try-0.0.*.tgz
+node_modules/
+try-offline/
+try-*.tgz
+.*

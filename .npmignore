@@ -1,7 +1,9 @@
-.jshintrc
-.npmignore
+node_modules/
+test/
 tmp/
 try/
-/offline-npm-*.tgz
+offline-npm-*.tgz
 offline.pid
-/npm-debug.log
+npm-debug.log
+.jshintrc
+.npmignore
