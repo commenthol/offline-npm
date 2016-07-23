@@ -1,6 +1,6 @@
 {
   "name": "offline-npm",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "npm pack for offline installation",
   "bin": "offline-npm.js",
   "scripts": {
