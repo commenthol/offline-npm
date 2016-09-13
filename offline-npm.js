@@ -4,10 +4,10 @@
 
 /* jshint node:true */
 
-var fs = require('fs'),
-  path = require('path'),
-  http = require('http'),
-  npm = requireNpm()
+var fs = require('fs')
+var path = require('path')
+var http = require('http')
+var npm = requireNpm()
 
 var VERSION = '0.2.1'
 
@@ -92,8 +92,8 @@ function rmdir (dir, force) {
 
     // Loop through and delete everything in the sub-tree after checking it
     for (var i = 0; i < files.length; i++) {
-      var file = path.join(dir, files[i]),
-        currFile = fs.lstatSync(file)
+      var file = path.join(dir, files[i])
+      var currFile = fs.lstatSync(file)
 
       if (currFile.isDirectory()) { // Recursive function back to the beginning
         rmdir(file, force)
@@ -138,12 +138,12 @@ function cp (srcFile, destFile) {
     log.error('cp: no such file or directory: ' + srcFile)
   }
 
-  var BUF_LENGTH = 64 * 1024,
-    buf = new Buffer(BUF_LENGTH),
-    bytesRead = BUF_LENGTH,
-    pos = 0,
-    fdr = null,
-    fdw = null
+  var BUF_LENGTH = 64 * 1024
+  var buf = new Buffer(BUF_LENGTH)
+  var bytesRead = BUF_LENGTH
+  var pos = 0
+  var fdr = null
+  var fdw = null
 
   try {
     fdr = fs.openSync(srcFile, 'r')
@@ -177,12 +177,11 @@ function cp (srcFile, destFile) {
  */
 function requireNpm () {
   // it is assumed that npm is always installed alongside with node
-  var
-    npm,
-    npmBinPath,
-    npmPath,
-    binDir = path.dirname(process.execPath),
-    npmBin = path.join(binDir, 'npm')
+  var npm
+  var npmBinPath
+  var npmPath
+  var binDir = path.dirname(process.execPath)
+  var npmBin = path.join(binDir, 'npm')
 
   try {
     npm = require('npm') // maybe the NODE_PATH var is already set correctly
@@ -224,8 +223,8 @@ var cli = {
     return this
   },
   option: function (short, long, desc, arg) {
-    var s = this._strip(long),
-      spc = '              '.substr(0, (13 - long.length))
+    var s = this._strip(long)
+    var spc = '              '.substr(0, (13 - long.length))
 
     this._store.option[s] = { desc: desc, arg: arg }
     if (short !== '') {
@@ -237,8 +236,10 @@ var cli = {
     return this
   },
   parse: function () {
-    var i, r, s,
-      argv = process.argv
+    var i
+    var r
+    var s
+    var argv = process.argv
 
     for (i = 2; i < argv.length; i += 1) {
       s = this._strip(argv[i])
@@ -308,32 +309,34 @@ var FsJson = function (filename) {
   }
   this.filename = filename
 }
-FsJson.prototype.read = function (cb) {
-  var self = this,
-    filename = path.join(pwd(), self.filename)
+FsJson.prototype = {
+  read: function (cb) {
+    var _this = this
+    var filename = path.join(pwd(), _this.filename)
 
-  fs.readFile(filename, 'utf8', function (err, data) {
-    var obj
-    if (err) {
-      cb(err)
-      return
-    }
-    try {
-      obj = JSON.parse(data)
-    } catch (e) {
-      cb(err)
-      return
-    }
-    cb(null, obj)
-  })
-}
-FsJson.prototype.write = function (data, cb) {
-  var self = this,
-    filename = path.join(pwd(), self.filename)
+    fs.readFile(filename, 'utf8', function (err, data) {
+      var obj
+      if (err) {
+        cb(err)
+        return
+      }
+      try {
+        obj = JSON.parse(data)
+      } catch (e) {
+        cb(err)
+        return
+      }
+      cb(null, obj)
+    })
+  },
+  write: function (data, cb) {
+    var _this = this
+    var filename = path.join(pwd(), _this.filename)
 
-  fs.writeFile(filename, JSON.stringify(data, null, '  '), function (err) {
-    if (cb) { cb(err) }
-  })
+    fs.writeFile(filename, JSON.stringify(data, null, '  '), function (err) {
+      if (cb) { cb(err) }
+    })
+  }
 }
 
 /*
@@ -342,10 +345,10 @@ FsJson.prototype.write = function (data, cb) {
 var packageJson = {
   _name: 'package.json',
   read: function (cb) {
-    var self = this
-    FsJson(self._name).read(function (err, data) {
+    var _this = this
+    FsJson(_this._name).read(function (err, data) {
       if (err) {
-        log.error(self._name + ' failed to read or parse: ' + err.message)
+        log.error(_this._name + ' failed to read or parse: ' + err.message)
         return
       } else {
         cb(null, data)
@@ -353,10 +356,10 @@ var packageJson = {
     })
   },
   write: function (data, cb) {
-    var self = this
-    FsJson(self._name).write(data, function (err) {
+    var _this = this
+    FsJson(_this._name).write(data, function (err) {
       if (err) {
-        log.error(self._name + ' failed to write: ' + err.message)
+        log.error(_this._name + ' failed to write: ' + err.message)
       }
       if (cb) cb(err)
     })
@@ -385,8 +388,8 @@ var shrinkwrap = {
    * backup npm-shrinkwrap.json to offline dir
    */
   backup: function (prepublish) {
-    var fileOrg = path.join(pwd(), this._name),
-      fileBak = path.join(pwd(), offline._dir, this._name)
+    var fileOrg = path.join(pwd(), this._name)
+    var fileBak = path.join(pwd(), offline._dir, this._name)
 
     if (!fs.existsSync(fileOrg)) {
       if (prepublish && fs.existsSync(fileBak)) {
@@ -402,8 +405,8 @@ var shrinkwrap = {
    * if exists npm-shrinkwrap.json restore to main dir
    */
   restore: function () {
-    var fileGen = path.join(pwd(), this._name),
-      fileBak = path.join(pwd(), offline._dir, this._name)
+    var fileGen = path.join(pwd(), this._name)
+    var fileBak = path.join(pwd(), offline._dir, this._name)
 
     if (fs.existsSync(fileBak)) {
       cp(fileBak, fileGen)
@@ -433,12 +436,12 @@ var shrinkwrap = {
    * change the shrinkwrap file
    */
   change: function (cb) {
-    var self = this
+    var _this = this
 
-    self.read(function (err, obj) {
+    _this.read(function (err, obj) {
       if (!err && obj) {
-        obj.dependencies = self.parse(obj.dependencies)
-        self.write(obj, function () {
+        obj.dependencies = _this.parse(obj.dependencies)
+        _this.write(obj, function () {
           if (cb) cb()
         })
       } else {
@@ -452,30 +455,30 @@ var shrinkwrap = {
  * handle stuff related to npmrc
  */
 var npmrc = function (npm, config) {
-  var self = {}
-  self._npmBackup = {}
+  var _this = {}
+  _this._npmBackup = {}
 
-  self.backup = function () {
+  _this.backup = function () {
     for (var key in config) {
-      self._npmBackup[key] = npm.config.get(key)
+      _this._npmBackup[key] = npm.config.get(key)
     }
   }
 
-  self.restore = function () {
-    for (var key in self._npmBackup) {
-      npm.config.set(key, self._npmBackup[key])
+  _this.restore = function () {
+    for (var key in _this._npmBackup) {
+      npm.config.set(key, _this._npmBackup[key])
     }
   }
 
-  self.set = function () {
+  _this.set = function () {
     for (var key in config) {
       npm.config.set(key, config[key])
     }
   }
 
-  self.backup()
+  _this.backup()
 
-  return self
+  return _this
 }
 
 /*
@@ -540,9 +543,9 @@ var semver = {
     return 0
   },
   sort: function (a, b) {
-    var r,
-      _a = semver.version(a),
-      _b = semver.version(b)
+    var r
+    var _a = semver.version(a)
+    var _b = semver.version(b)
 
     if (!_a) { return 1 }
     if (!_b) { return -1 }
@@ -568,13 +571,13 @@ var server = {
   pack: function (cache, name, cb) {
     name = unescape(name)
 
-    var self = this,
-      p = { name: name, versions: {} },
-      dir = cache + '/' + name
+    var _this = this
+    var p = { name: name, versions: {} }
+    var dir = cache + '/' + name
 
     fs.readdir(dir, function (err, versions) {
-      var vv = [],
-        cnt = 0
+      var vv = []
+      var cnt = 0
 
       if (err) {
         return cb(err)
@@ -608,7 +611,7 @@ var server = {
           if (pck._shasum) {
             pck.dist.shasum = pck._shasum
           }
-          pck.dist.tarball = self.packageUrl(name, version)
+          pck.dist.tarball = _this.packageUrl(name, version)
           delete (pck.readme)
           delete (pck._from)
           delete (pck._shasum)
@@ -628,8 +631,8 @@ var server = {
     log.debug('[' + (new Date()).toISOString() + ']', 404, req.url)
   },
   files: function (options) {
-    var self = this,
-      REGEX_TGZ = /^\/([^\/]+)\/-\/(?:(?!\d+\.\d+\.\d+).)*\-(\d+\.\d+\.\d+.*)\.tgz$/
+    var _this = this
+    var REGEX_TGZ = /^\/([^\/]+)\/-\/(?:(?!\d+\.\d+\.\d+).)*\-(\d+\.\d+\.\d+.*)\.tgz$/
 
     options = options || {}
     options.path = options.path || '/'
@@ -645,9 +648,9 @@ var server = {
 
         if (/^\/[^\/]+$/.test(req.url)) {
           file = req.url.replace(/\//, '')
-          self.pack(options.base, file, function (err, p) {
+          _this.pack(options.base, file, function (err, p) {
             if (err) {
-              return self.error404(req, res)
+              return _this.error404(req, res)
             }
             res.writeHead(200, {'Content-Type': 'application/json; charset=utf-8'})
             res.end(JSON.stringify(p, null, '  '))
@@ -660,7 +663,7 @@ var server = {
 
           fs.stat(file, function (err, stat) {
             if (err || !stat.isFile()) {
-              return self.error404(req, res)
+              return _this.error404(req, res)
             }
             stream = fs.createReadStream(file)
             res.writeHead(200, { 'Content-Type': 'application/octet-stream' })
@@ -673,18 +676,18 @@ var server = {
             })
           })
         } else {
-          return self.error404(req, res)
+          return _this.error404(req, res)
         }
       } else {
-        return self.error404(req, res)
+        return _this.error404(req, res)
       }
     }
   },
   start: function (cache, cb) {
-    var self = this
+    var _this = this
 
     // create and start-up the server with the chained middlewares
-    var server = http.createServer(self.files({ path: '/', base: cache }))
+    var server = http.createServer(_this.files({ path: '/', base: cache }))
 
     server.on('error', function (err) {
       if (err.code === 'EADDRINUSE') {
@@ -737,8 +740,12 @@ var offline = {
         shrinkwrap.restore()
 
         packageJson.read(function (err, data) {
-          var i,
-            packages = []
+          var i
+          var packages = []
+
+          if (err) {
+            throw err
+          }
 
           if (data.dependencies) {
             for (i in data.dependencies) {
@@ -753,7 +760,7 @@ var offline = {
                   log.error('shrinkwrap error: ' + err.message)
                   return
                 }
-                shrinkwrap.change(function (err) {
+                shrinkwrap.change(function (/* err */) {
                 })
               })
             })
@@ -768,10 +775,8 @@ var offline = {
    * Start a fake registry server
    */
   preinstall: function () {
-    var self = this
-
     // start the npm registry using the cache
-    self.server()
+    this.server()
   },
   /**
    * to be called on postinstall
@@ -794,24 +799,28 @@ var offline = {
    * add scripts to `package.json`
    */
   add: function () {
-    var self = this
+    var _this = this
 
     packageJson.read(function (err, data) {
+      if (err) {
+        log.error('no package.json file found')
+        return
+      }
       if (!data.scripts) { data.scripts = {} }
 
-      self._cmds.forEach(function (s) {
-        var sep = (s === 'preinstall' ? ' & sleep 2 ; ' : ' ; '),
-          tmp = data.scripts[s]
+      _this._cmds.forEach(function (s) {
+        var sep = (s === 'preinstall' ? ' & sleep 2 ; ' : ' ; ')
+        var tmp = data.scripts[s]
 
         if (tmp) {
-          data.scripts[s] = self._script + ' --' + s + sep + tmp.replace(self._regex, '')
+          data.scripts[s] = _this._script + ' --' + s + sep + tmp.replace(_this._regex, '')
         } else {
-          data.scripts[s] = self._script + ' --' + s + sep
+          data.scripts[s] = _this._script + ' --' + s + sep
         }
       })
       packageJson.write(data, function (err) {
         if (!err) {
-          if (self._globalScript()) {
+          if (_this._globalScript()) {
             mkdir(path.join(pwd(), 'offline', 'cache'))
             cp(process.mainModule.filename, path.join(pwd(), 'offline', 'offline-npm'))
           } else {
@@ -829,7 +838,7 @@ var offline = {
    * remove offline scripts from `package.json`
    */
   remove: function () {
-    var self = this
+    var _this = this
 
     packageJson.read(function (err, data) {
       var tmp
@@ -841,17 +850,17 @@ var offline = {
 
       shrinkwrap.restore()
       // delete the offline directory
-      tmp = path.resolve(pwd(), self._dir)
+      tmp = path.resolve(pwd(), _this._dir)
       if (fs.existsSync(tmp)) {
         rmdir(tmp)
       }
 
       if (!data.scripts) { data.scripts = {} }
 
-      self._cmds.forEach(function (s) {
+      _this._cmds.forEach(function (s) {
         tmp = data.scripts[s]
         if (typeof tmp === 'string') {
-          data.scripts[s] = tmp.replace(self._regex, '')
+          data.scripts[s] = tmp.replace(_this._regex, '')
           if (data.scripts[s] === '') {
             delete (data.scripts[s])
           }
@@ -860,7 +869,7 @@ var offline = {
 
       packageJson.write(data, function (err) {
         if (!err) {
-          if (!self._globalScript()) {
+          if (!_this._globalScript()) {
             rmdir(__dirname)
           }
           log.info('offline-npm was removed from project: ' + data.name)
@@ -874,14 +883,14 @@ var offline = {
    * starts the local npm registry server
    */
   server: function () {
-    var self = this
+    var _this = this
     var dir = typeof cli.opts.server === 'string' ? path.resolve(__dirname, cli.opts.server) : path.resolve(__dirname, 'cache')
     try {
       if (fs.existsSync(dir) &&
         fs.lstatSync(dir).isDirectory()) {
         server.start(dir)
         // write a pid file to kill the server on postinstall
-        fs.writeFileSync(self._pidfile, process.pid, 'utf8')
+        fs.writeFileSync(_this._pidfile, process.pid, 'utf8')
       } else {
         log.error(dir + ' is not a directory - server did not start')
       }
