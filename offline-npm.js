@@ -7,6 +7,7 @@
 var fs = require('fs')
 var path = require('path')
 var http = require('http')
+var spawn = require('child_process').spawn
 var npm = requireNpm()
 
 var VERSION = '0.2.1'
@@ -776,7 +777,15 @@ var offline = {
    */
   preinstall: function () {
     // start the npm registry using the cache
-    this.server()
+    var child = spawn('./offline/offline-npm', ['-s'], {
+      cwd: pwd(),
+      detached: true,
+      stdio: 'inherit'
+    })
+    child.unref()
+    setTimeout(function () {
+      process.exit(0)
+    }, 2000)
   },
   /**
    * to be called on postinstall
@@ -809,7 +818,7 @@ var offline = {
       if (!data.scripts) { data.scripts = {} }
 
       _this._cmds.forEach(function (s) {
-        var sep = (s === 'preinstall' ? ' & sleep 2 ; ' : ' ; ')
+        var sep = ' ; '
         var tmp = data.scripts[s]
 
         if (tmp) {
