@@ -186,11 +186,16 @@ function requireNpm () {
 
   try {
     npm = require('npm') // maybe the NODE_PATH var is already set correctly
+    if (!npm) throw new Error('npm not found')
     return npm
   } catch (e) {
-    if (fs.existsSync(npmBin) && fs.lstatSync(npmBin).isSymbolicLink()) {
-      npmBinPath = path.resolve(binDir, fs.readlinkSync(npmBin))
-      npmPath = npmBinPath.replace(/^(.*\/node_modules\/npm)(?:(?!\/node_modules\/npm).)*?$/, '$1')
+    if (fs.existsSync(npmBin)) {
+      if (fs.lstatSync(npmBin).isSymbolicLink()) {
+        npmBinPath = path.resolve(binDir, fs.readlinkSync(npmBin))
+        npmPath = npmBinPath.replace(/^(.*\/node_modules\/npm)(?:(?!\/node_modules\/npm).)*?$/, '$1')
+      } else {
+        npmPath = path.resolve(binDir, 'node_modules', 'npm')
+      }
       npm = require(npmPath)  // if the assumption is wrong, then an assertion is thrown here
       return npm
     }
@@ -713,8 +718,9 @@ var offline = {
   _cmds: ['prepublish', 'preinstall', 'postinstall'],
   _dir: 'offline',
   _pidfile: path.join(__dirname, 'offline.pid'),
+  _node: 'node',
   _script: './offline/offline-npm',
-  _regex: /\s*\.\/offline\/offline-npm (?:(?!;|&&).)*(;|&&\s*|$)\s*/g,
+  _regex: /\s*(?:node )?\.\/offline\/offline-npm (?:(?!;|&&).)*(;|&&\s*|$)\s*/g,
   /**
    * check if script was called from global install or local
    */
@@ -777,7 +783,7 @@ var offline = {
    */
   preinstall: function () {
     // start the npm registry using the cache
-    var child = spawn('./offline/offline-npm', ['-s'], {
+    var child = spawn(this._node, [this._script, '-s'], {
       cwd: pwd(),
       detached: true,
       stdio: 'inherit'
@@ -822,9 +828,9 @@ var offline = {
         var tmp = data.scripts[s]
 
         if (tmp) {
-          data.scripts[s] = _this._script + ' --' + s + sep + tmp.replace(_this._regex, '')
+          data.scripts[s] = _this._node + ' ' + _this._script + ' --' + s + sep + tmp.replace(_this._regex, '')
         } else {
-          data.scripts[s] = _this._script + ' --' + s + sep
+          data.scripts[s] = _this._node + ' ' + _this._script + ' --' + s + sep
         }
       })
       packageJson.write(data, function (err) {
